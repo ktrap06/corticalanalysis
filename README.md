@@ -28,6 +28,8 @@ This contains a **main_notebook_example**: this is a jupyter notebook whereby I 
 
 **preprocessing_with_examples** is a jupyter notebook containing both preprocessing functions and the main script functions. This is used to generate the main script and preprocessing_function script. Not for dataset us, but rather generating more components to the project.
 
+## Dependencies
+
 This project was completed in Python version 3.12 using the following packages and versions:
 
 - numpy 1.26.2
