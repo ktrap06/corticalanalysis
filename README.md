@@ -25,6 +25,17 @@ This contains all the functions that are used in the main_processing script. It 
 - smoothing - spatial smoothing (gaussian, 3 pixel, and temporal chebeshev 1 filer
 - make_video - generate dff video of whole session
 
+#### environment.yml
+This contains the necessary packages and environment for the script to run. However, I highly recommend using: in anaconda prompt:
+1. make sure the repo folder is already there. the environment has to be in that folder
+2. cd repo folder
+3. conda create -n name_of_environment python=3.12
+4. conda activate name_of_environment
+5. pip install jupyter
+6. jupyter notebook
+7. **Uncomment "pip install" in the main_processing script and using this to install the packages**
+8. plotly needs to be conda installed manually through the conda prompt as well
+
 #### Script-use examples folder
 This contains a **main_notebook_example**: this is a jupyter notebook whereby I processed a pilot dataset. This is how each trial should look upon being processed and kept in a notebooks folder (personal use). 
 
