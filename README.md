@@ -19,7 +19,9 @@ preprocessing_functions.py contains all the functions that are used in the main_
 - smoothing - spatial smoothing (gaussian, 3 pixel, and temporal chebeshev 1 filer
 - make_video - generate dff video of whole session
 
-The Script-use examples contains a
+The Script-use examples contains a main_notebook_example: this is a jupyter notebook whereby I processed a pilot dataset. This is how each trial should look upon being processed and kept in a notebooks folder (personal use). 
+
+preprocessing_with_examples is a jupyter notebook containing both preprocessing functions and the main script functions. This is used to generate the main script and preprocessing_function script. Not for dataset us, but rather generating more components to the project.
 
 This project was completed in Python version 3.12 using the following packages and versions:
 
