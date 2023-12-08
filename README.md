@@ -7,9 +7,11 @@ The dataset used in this project was videos of calcium dynamics in layer 2/3 of 
 
 ## Implementation
 
-main_processing.ipynb is the only script you will need. It contains 7 steps in a jupyter notebook to generate a dff tif stack, as well as associated figures throughout the processing of the signal. **PLEASE DUPLICATIE EACH TIME YOU PROCESS NEW DATA AND PLACE INTO A NOTEBOOKS FOLDER** Go through the step, first by giving the path to the file, and setting a frame you would like to see as the example frame. At the end you will need to also add the path where you would like the tiff output to be generated. 
+#### main_processing.ipynb 
+This is the only script you will need. It contains 7 steps in a jupyter notebook to generate a dff tif stack, as well as associated figures throughout the processing of the signal. **PLEASE DUPLICATIE EACH TIME YOU PROCESS NEW DATA AND PLACE INTO A NOTEBOOKS FOLDER** Go through the step, first by giving the path to the file, and setting a frame you would like to see as the example frame. At the end you will need to also add the path where you would like the tiff output to be generated. 
 
-preprocessing_functions.py contains all the functions that are used in the main_processing script. It contains the following functions in a .py file 
+#### preprocessing_functions.py
+This contains all the functions that are used in the main_processing script. It contains the following functions in a .py file 
 - load_frames - Loads in tif stacks as a 3d array. Make sure the dtype is 12.
 - interactive_plot - Makes plotly interactive plots inline
 - plot_frame - plots frame of interest with colormap
@@ -21,9 +23,10 @@ preprocessing_functions.py contains all the functions that are used in the main_
 - smoothing - spatial smoothing (gaussian, 3 pixel, and temporal chebeshev 1 filer
 - make_video - generate dff video of whole session
 
-The Script-use examples contains a main_notebook_example: this is a jupyter notebook whereby I processed a pilot dataset. This is how each trial should look upon being processed and kept in a notebooks folder (personal use). 
+#### Script-use examples folder
+This contains a **main_notebook_example**: this is a jupyter notebook whereby I processed a pilot dataset. This is how each trial should look upon being processed and kept in a notebooks folder (personal use). 
 
-preprocessing_with_examples is a jupyter notebook containing both preprocessing functions and the main script functions. This is used to generate the main script and preprocessing_function script. Not for dataset us, but rather generating more components to the project.
+**preprocessing_with_examples** is a jupyter notebook containing both preprocessing functions and the main script functions. This is used to generate the main script and preprocessing_function script. Not for dataset us, but rather generating more components to the project.
 
 This project was completed in Python version 3.12 using the following packages and versions:
 
