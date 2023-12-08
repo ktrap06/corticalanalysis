@@ -1,5 +1,5 @@
 # Processing of Calcium Mesoscale Cortical Activity into dff tiff stacks
-##
+## Introduction
 Processing **whole-brain calcium signals** in a behaving mouse is required to study how learning occurs in the cortex. In the field, it is very common to generate a _delta f over f for calcium data_, to be able to normalize the signal and determine what signals are neuronal activity, thereby removing hemodynamic or movement artifacts. Additionally, for this project, I am using visual stimuli to elicit **network activity in HD and WT mice**, this light is green and thereby creates an artifact in the cortical signal that needs to be removed for proper analysis. This script accomplishes this, by thresholding at 3 SD above the mean. Furthermore, I would like to include spatiotemporal analysis in this project via TCA, spatiotemporal PCA, and seeded pixel correlation analysis. This is possible using dff tiff stacks. 
 
 ## Dataset used: 
