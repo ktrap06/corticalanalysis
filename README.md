@@ -8,17 +8,16 @@ The dataset used in this project was videos of calcium dynamics in layer 2/3 of 
 main_processing.ipynb is the only script you will need. It contains 7 steps in a jupyter notebook to generate a dff tif stack, as well as associated figures throughout the processing of the signal. **PLEASE DUPLICATIE EACH TIME YOU PROCESS NEW DATA AND PLACE INTO A NOTEBOOKS FOLDER** Go through the step, first by giving the path to the file, and setting a frame you would like to see as the example frame. At the end you will need to also add the path where you would like the tiff output to be generated. 
 
 preprocessing_functions.py contains all the functions that are used in the main_processing script. It contains the following functions in a .py file 
-
-- load_frames - 
-- interactive_plot - 
-- plot_frame - 
-- temporal_mean - 
-- remove_dark_frames - 
-- extract_artifacts - 
-- interpolate - 
-- dff - 
-- smoothing - 
-- make_video - 
+- load_frames - Loads in tif stacks as a 3d array. Make sure the dtype is 12.
+- interactive_plot - Makes plotly interactive plots inline
+- plot_frame - plots frame of interest with colormap
+- temporal_mean - calculate and plot raw timeseries
+- remove_dark_frames - remove darkframe from start and end, then plot timeseries
+- extract_artifacts - removes artifacts from 3d array
+- interpolate - interpolated the 5 removed artifact frames and plots timeseries
+- dff - calculates delta f over f using a 10s moving average
+- smoothing - spatial smoothing (gaussian, 3 pixel, and temporal chebeshev 1 filer
+- make_video - generate dff video of whole session
 
 The Script-use examples contains a
 
