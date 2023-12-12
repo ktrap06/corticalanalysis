@@ -337,3 +337,23 @@ def make_video(array3d, frame_rate, codec_type = 'XVID', output_filename = 'cort
 
     print("Video generated successfully.")
 
+# In[58]:
+
+def save_tiff(array3d, output_stack_path = "X:/Raymond Lab/Kaiiiii/processed_data/dff_output.tiff"):
+
+    array3d = array3d.astype(np.float32)
+    individual_slices = [] # Initialize an empty list to store individual slices
+
+    for i in tqdm(range(len(array3d))): # Iterate through the depth dimension
+        # Scale the data to the 0-255 range because it is 32 bit (adjust as needed)
+        scaled_data = (array3d[i] - np.min(array3d[i])) / (np.max(array3d[i]) - np.min(array3d[i])) * 255
+        image_data = scaled_data.astype(np.uint8)      # Convert the scaled data to uint8
+        individual_slices.append(image_data)       # Append the image data to the list
+
+    stacked_data = np.array(individual_slices) # Convert the list to a NumPy array
+
+    # Save the 3D array as a TIFF stack
+    tifffile.imwrite(output_stack_path, stacked_data)
+
+    print("Combined TIFF stack saved successfully.")
+
