@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[4]:
 
 
 """install the packages to run this code"""
-#%pip install matplotlib tifffile scipy tqdm pybaselines opencv-python #plotly #need to do this through conda install
+#%pip install matplotlib tifffile scipy tqdm pybaselines opencv-python imagecodecs #plotly #need to do this through conda install
 
 
-# In[2]:
+# In[5]:
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 import tifffile
 import cv2
-#from PIL import Image
+from PIL import Image
 #from pybaselines.whittaker import asls
+import scipy 
 from scipy import interpolate
 from scipy.interpolate import interp1d
 from scipy.ndimage import gaussian_filter
@@ -24,9 +25,10 @@ from scipy.signal import cheby1, filtfilt, find_peaks, peak_widths
 from tqdm import tqdm
 get_ipython().run_line_magic('matplotlib', 'inline')
 import plotly.express as px
+import imagecodecs
 
 
-# In[4]:
+# In[6]:
 
 
 def load_frames(video):
@@ -43,7 +45,7 @@ def load_frames(video):
     return frames
 
 
-# In[6]:
+# In[7]:
 
 
 def interactive_plot(array1d, title_label = "output", xaxis_label = "duration", yaxis_label = "intensity"):
@@ -58,7 +60,7 @@ def interactive_plot(array1d, title_label = "output", xaxis_label = "duration", 
     fig.show()
 
 
-# In[7]:
+# In[8]:
 
 
 def plot_frame(frames:np.ndarray, frame_number, cmap = 'jet', color_label = "N/A"):
@@ -71,8 +73,13 @@ def plot_frame(frames:np.ndarray, frame_number, cmap = 'jet', color_label = "N/A
 
     image = frames[frame_number, :, :]
     fig, ax = plt.subplots()
+    
+    colormap = plt.get_cmap(cmap)
+    colormap.set_bad('black', alpha=1.0) #make it so nan values (in the mask) are black
+    
     im = ax.imshow(image, cmap=cmap)
     plt.colorbar(im, label = color_label)
+    
     ax.grid(True)
     ax.axis('on')
     print("frame number", frame_number, "plotted")
@@ -103,7 +110,7 @@ def temporal_mean(frames):
     return mean_timecourse
 
 
-# In[11]:
+# In[10]:
 
 
 def remove_dark_frames(frames, signal, threshold = 0.2):
@@ -134,7 +141,7 @@ def remove_dark_frames(frames, signal, threshold = 0.2):
     return signal, frames
 
 
-# In[13]:
+# In[11]:
 
 
 def extract_artifacts(timecourse, frames_between_double_flash = 20):
@@ -157,26 +164,32 @@ def extract_artifacts(timecourse, frames_between_double_flash = 20):
     double_flash = []
 
     for i in range(len(artifact_indices)):
-        is_double_peak = (i > 0 and artifact_indices[i] - artifact_indices[i - 1] < frames_between_double_flash) or \
-                         (i < len(artifact_indices) - 1 and artifact_indices[i + 1] - artifact_indices[i] < frames_between_double_flash)
-        if is_double_peak:
-            double_flash.append([artifact_indices[i], artifact_indices[i-1]])
+        if  (i > 0 and artifact_indices[i] - artifact_indices[i - 1] < frames_between_double_flash):
+            double_flash.append(artifact_indices[i])
+        elif (i < len(artifact_indices) - 1 and artifact_indices[i + 1] - artifact_indices[i] < frames_between_double_flash):
+            double_flash.append(artifact_indices[i])
         else:
             single_flash.append(artifact_indices[i])
-        
+
     print("Number of double_flash:", len(double_flash))
+
+    artifact_indices = np.array(artifact_indices)
+    double_flash = np.array(double_flash).reshape(-1, 2)
+    single_flash = np.array(single_flash)
+
+    print("Number of double_flash pairs:", len(double_flash))
     print("Number of single_flash:", len(single_flash))
     print("Number of total flashes:", len(artifact_indices))
 
     """SECTION END"""
     
-    return artifact_indices #,single_flash, double_flash
+    return artifact_indices ,single_flash, double_flash
 
 
-# In[15]:
+# In[12]:
 
 
-def interpolate(no_dark_frames, artifact_indices):
+def interpolate(no_dark_frames, artifact_indices, stim_length):
     """
     interpolate over the artifacts, representing a total of 5 frames. 
 
@@ -190,8 +203,8 @@ def interpolate(no_dark_frames, artifact_indices):
     print("interpolating artifact frames...")
     interp_indices = []        #make the indices that need to be interpolated, organized in groups of 5
     for index in artifact_indices:
-        start = index-3        #add 3 frame padding before, to ensure the entire artifact is removed
-        end = index+3          #add 3 frame padding after, to ensure the entire artifact is removed
+        start = index-stim_length        #add 3 frame padding before, to ensure the entire artifact is removed
+        end = index+stim_length          #add 3 frame padding after, to ensure the entire artifact is removed
         group = []
         for new_index in range(start, end+1):        #loop within to ensure each array within the array is a total of 7 (for each flash of light)
             group.append(new_index)
@@ -214,7 +227,7 @@ def interpolate(no_dark_frames, artifact_indices):
     return no_dark_frames
 
 
-# In[17]:
+# In[13]:
 
 
 def dff(data, duration = 10, frame_rate = 30, eps=1e-3):
@@ -252,7 +265,7 @@ def dff(data, duration = 10, frame_rate = 30, eps=1e-3):
     return dFF[pad_size:-pad_size, :, :], centered_mean_array
 
 
-# In[22]:
+# In[14]:
 
 
 def smoothing(data):
@@ -300,60 +313,93 @@ def smoothing(data):
     return data
 
 
-# In[57]:
+# In[15]:
 
 
-def make_video(array3d, frame_rate, codec_type = 'XVID', output_filename = 'cortical_processed_video.avi'):
-    # Assuming your 3D array is named 'intensity_data' with shape (num_frames, 128, 128)
-    # Replace this with your actual data
-    num_frames = len(smoothed_signal)
-    height, width = smoothed_signal[1].shape
+def save_tiff(array3d, output_stack_path="X:/Raymond Lab/Kaiiiii/processed_data/dff_output.tiff"):
+    """
+    saves the tiff stack as a 32 bit array, notably not reduced to 8-bit
 
-    # Define video parameters
-    output_file = output_filename
-    fps = frame_rate  # Frames per second
-    codec = codec_type  # Video codec (use XVID for AVI format)
-
-    # Create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*codec)
-    out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
-
-    min_intensity = np.min(smoothed_signal)
-    max_intensity = np.max(smoothed_signal)
-
-    # Normalize float32 data to 8-bit for visualization
-    normalized_data = ((smoothed_signal - min_intensity) / (max_intensity - min_intensity) * 255.0).astype(np.uint8)
-
-    # Write each frame to the video file
-    for slice in smoothed_signal:
-        # Convert the 2D array to a color image (assuming grayscale intensity data)
-        slice_rgb = cv2.cvtColor(slice, cv2.COLOR_GRAY2BGR)
-        
-        # Write the frame to the video file
-        out.write(slice_rgb)
-
-    # Release the VideoWriter object
-    out.release()
-
-    print("Video generated successfully.")
-
-# In[58]:
-
-def save_tiff(array3d, output_stack_path = "X:/Raymond Lab/Kaiiiii/processed_data/dff_output.tiff"):
-
+    :param array3d: use the smoothed data in a 3d numpy array
+    :param mask_path: path where to save the output
+    """
+    
     array3d = array3d.astype(np.float32)
-    individual_slices = [] # Initialize an empty list to store individual slices
+    individual_slices = []  # Initialize an empty list to store individual slices
 
-    for i in tqdm(range(len(array3d))): # Iterate through the depth dimension
-        # Scale the data to the 0-255 range because it is 32 bit (adjust as needed)
-        scaled_data = (array3d[i] - np.min(array3d[i])) / (np.max(array3d[i]) - np.min(array3d[i])) * 255
-        image_data = scaled_data.astype(np.uint8)      # Convert the scaled data to uint8
-        individual_slices.append(image_data)       # Append the image data to the list
+    for i in tqdm(range(len(array3d))):  # Iterate through the depth dimension
+        image_data = array3d[i].astype(np.float32)  # Convert the data to float32 without scaling
+        individual_slices.append(image_data)  # Append the image data to the list
 
-    stacked_data = np.array(individual_slices) # Convert the list to a NumPy array
+    stacked_data = np.array(individual_slices)  # Convert the list to a NumPy array
 
     # Save the 3D array as a TIFF stack
     tifffile.imwrite(output_stack_path, stacked_data)
 
     print("Combined TIFF stack saved successfully.")
+
+
+# In[16]:
+
+
+def load_txt(file_path, fps=30, footer = 4):
+    total_lines = sum(1 for line in open(file_path)) # Determine the total number of lines in the file
+
+    data_txt = np.genfromtxt(file_path, delimiter='\t', skip_footer=footer)  # Read the text file into a NumPy array, excluding the last 3 rows
+    data_footer = np.genfromtxt(file_path, delimiter='\t', skip_header=(total_lines-footer), filling_values=np.nan)  #load dark frames to line up data
+    start, end = data_footer[0,1], data_footer[1,1 ] #start is LED on time, end is LED off time
+
+    time_column = data_txt[:, 1]
+    flash_type = data_txt[:, 2]
+    frames_flash_index = (time_column - start)*fps
+
+    return frames_flash_index, data_txt, flash_type
+
+
+# In[17]:
+
+
+def extract_txt_flashes(txt_flashes, flash_type, fps = 30, flash_interval = 0.5):
+    allflashes = []
+    double = []
+    single = []
+    for i, f in enumerate(txt_flashes):
+        if flash_type[i] == 2:
+            allflashes.append(f)
+            allflashes.append(f+(flash_interval*fps))
+            double.append(f)
+            double.append(f+(flash_interval*fps))
+        else:
+            allflashes.append(f)
+            single.append(f)
+    allflashes = np.array(allflashes).round()
+    single = np.array(single).round()
+    double = np.array(double).round().reshape(-1, 2)
+
+    return allflashes, single, double
+
+
+# In[18]:
+
+
+def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas.png', mask_outline = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas_outline.png'):
+    """
+    applies a png image of a allen mouse brain atlas of the functional regions over the tiff stack
+
+    :param array3d: use the smoothed data in a 3d numpy array
+    :param mask_path: path to the atlas png
+
+    :return: a stack with the areas which do not represent the brain areas set as zeros
+    """
+    
+    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE) # Load PNG mask
+    mask = cv2.resize(mask, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
+    _, binary_mask = cv2.threshold(mask, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+
+
+    outline =  cv2.imread(mask_outline, cv2.IMREAD_GRAYSCALE) # Load PNG mask
+    outline = cv2.resize(outline, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
+    _, binary_mask = cv2.threshold(outline, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+
+    return mask, outline
 
