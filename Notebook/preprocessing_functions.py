@@ -26,6 +26,7 @@ from tqdm import tqdm
 get_ipython().run_line_magic('matplotlib', 'inline')
 import plotly.express as px
 import imagecodecs
+from matplotlib.animation import FuncAnimation
 
 
 # In[6]:
@@ -403,3 +404,62 @@ def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticala
 
     return mask, outline
 
+#roi processing
+
+def avg_trials(flash_indices, smoothed_signal, double = 'FALSE', segment_size = 330):
+    segments = []
+    
+    if double == 'TRUE':
+        for flash_index in flash_indices:
+            d_start_index = flash_index[0]
+            d_end_index = d_start_index + segment_size
+            segments.append(smoothed_signal[d_start_index:d_end_index])
+        
+    else: 
+        for flash_index in flash_indices:
+            start_index = flash_index
+            end_index = flash_index + segment_size
+            segments.append(smoothed_signal[start_index:end_index])
+            
+    segments_array = np.array(segments)
+    mean_signal = np.mean(segments_array, axis=0)
+    return mean_signal
+
+def extract_v1(avg_flash, roi_time = 5, roi_start_x=15, roi_start_y = 85, roi_width=45, roi_height = 45):
+    
+    #Determine the coordinates of the first region (ROI)
+    first_region = avg_flash[roi_time, roi_start_y:roi_start_y+roi_height, roi_start_x:roi_start_x+roi_width]
+    
+    #Find the coordinates of the maximum value within the extracted region
+    max_coords = np.unravel_index(np.argmax(first_region), first_region.shape)
+    max_x, max_y = max_coords[1] + roi_start_x, max_coords[0] + roi_start_y
+
+    new_roi_width, new_roi_height = 10, 10  # Adjust the dimensions of the new region
+    new_roi_start_x = max_x - new_roi_width // 2
+    new_roi_start_y = max_y - new_roi_height // 2
+    
+    # Ensure the new region is within the bounds of the video_data
+    new_roi_start_x = max(0, new_roi_start_x)
+    new_roi_start_y = max(0, new_roi_start_y)
+    new_roi_end_x = min(avg_flash.shape[2], new_roi_start_x + new_roi_width)
+    new_roi_end_y = min(avg_flash.shape[1], new_roi_start_y + new_roi_height)
+
+    # Extract the data within the new region for the specific time frame
+    new_region = avg_flash[:, new_roi_start_y:new_roi_end_y, new_roi_start_x:new_roi_end_x]
+
+    return new_region
+
+def animate_figure(avg_flash, fps=10, save_path="C:/Users/trapped/Documents/GitHub/corticalanalysis/Notebook/animated_graphs/animated_graph.gif"):
+    interval_time = 1/fps
+
+    x=np.arange(len(avg_flash))
+    y=avg_flash.mean(axis=(1,2))
+    fig, ax = plt.subplots()
+    line, =ax.plot(x,y)
+    def myupdating(i):
+        line.set_data(x[:i],y[:i]) #x[:i] is the sub array of array x from position 0 to i-1
+
+    myanimation = FuncAnimation(fig,myupdating, frames=len(avg_flash),interval=interval_time)
+    myanimation.save(save_path, writer='pillow')
+
+    print(f"GIF stack saved at: {save_path}")
