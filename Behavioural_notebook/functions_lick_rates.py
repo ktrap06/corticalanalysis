@@ -70,13 +70,22 @@ def select_folder(stage):
 
 def licking(file_data, stage):
     variable_data = []
+    
     for idx, data in file_data.items():
+        count_1 = 0
+        count_2 = 0
         day_number = int(idx[3:])
         licked_values = data[0]
-        flash_type_values = data[2]
+        flash_type_values = data[2]  
+        for value in flash_type_values:
+            if value == 1:
+                count_1 += 1
+            elif value == 2:
+                count_2 += 1
+    
         if stage == "stage2":
-            left_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 1))/50)*100
-            right_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 2))/50)*100
+            left_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 1))/count_1)*100
+            right_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 2))/count_2)*100
             variable_data.append([day_number, left_lick, right_lick])
             print(f"Stage 2 day {day_number} reached left lick rate of {left_lick}%, and right lick rate of {right_lick}%")
         elif stage == "stage1": 
