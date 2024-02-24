@@ -17,6 +17,7 @@ from matplotlib.animation import FuncAnimation
 import tkinter as tk
 from tkinter import filedialog
 import os
+import re
 
 # In[62]:
 
@@ -39,18 +40,21 @@ def licked_txt(file_path, stage):
 
 # In[63]:
 
-
 def load_files_from_folder(folder_path, stage):
     files = os.listdir(folder_path)
     file_data = {}
-    for idx, file_name in enumerate(files, start=1):
-        file_path = os.path.join(folder_path, file_name)
-        if os.path.isfile(file_path):
-            print("Loading file:", file_path)
-            # Read file data and store it in a dictionary with variable names
-            file_data[f'day{idx}'] = licked_txt(file_path, stage)
+    for file_name in files:
+        # Extract day number from the file name using regular expressions
+        match = re.search(r'day(\d+)', file_name)
+        if match:
+            day_number = int(match.group(1))
+            print(day_number)
+            file_path = os.path.join(folder_path, file_name)
+            if os.path.isfile(file_path):
+                print("Loading file:", file_path)
+                # Read file data and store it in a dictionary with variable names
+                file_data[f'day{day_number}'] = licked_txt(file_path, stage)
     return file_data
-
 
 # In[64]:
 
