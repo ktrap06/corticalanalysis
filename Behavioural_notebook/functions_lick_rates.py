@@ -25,7 +25,7 @@ import re
 def licked_txt(file_path, stage):
     if stage == "stage1":
         footer = 3
-    elif stage == "stage2":
+    else:
         footer = 4
         
     total_lines = sum(1 for line in open(file_path)) # Determine the total number of lines in the file
@@ -48,7 +48,6 @@ def load_files_from_folder(folder_path, stage):
         match = re.search(r'day(\d+)', file_name)
         if match:
             day_number = int(match.group(1))
-            print(day_number)
             file_path = os.path.join(folder_path, file_name)
             if os.path.isfile(file_path):
                 print("Loading file:", file_path)
@@ -67,7 +66,7 @@ def select_folder(stage):
         print("Processing complete.")
         # Example: Access data for day 1: file_data['day1']
         # Example: Access data for day 2: file_data['day2']
-    return file_data
+    return file_data, folder_path
 
 
 # In[67]:
@@ -96,10 +95,11 @@ def licking(file_data, stage):
             summed_value = sum(data[0])
             variable_data.append([day_number, summed_value])
             print(f"Stage 1 day {day_number} reached a lick rate of {summed_value}%")
+    
     return variable_data
 
 
-def plot_array(array, stage):
+def plot_array(array, stage, export_path):
     # Extract x and y values from the array
     x_values = [row[0] for row in array]
     if stage == "stage1":
@@ -109,35 +109,37 @@ def plot_array(array, stage):
         y_values_right = [row[2] for row in array]
 
     # Plot the data
-    plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(4, 3))
     if stage == "stage1":
-        plt.plot(x_values, y_values, marker='o', linestyle='-', color='g')
-        plt.legend(["Lick rate"])
+        fig,plt.plot(x_values, y_values, marker='o', linestyle='-', color='g')
+        fig,plt.legend(["Lick rate"])
     elif stage == "stage2":
-        plt.plot(x_values, y_values_left, marker='o', linestyle='-', color='c', label='Left')
-        plt.plot(x_values, y_values_right, marker='o', linestyle='-', color='y', label='Right')
-        plt.legend(["Left", "Right"])
+        fig,plt.plot(x_values, y_values_left, marker='o', linestyle='-', color='c', label='Left')
+        fig,plt.plot(x_values, y_values_right, marker='o', linestyle='-', color='b', label='Right')
+        fig,plt.legend(["Left", "Right"])
 
-    plt.xlabel('Day Number')
-    plt.ylabel('Percent licked (%)')
-    plt.title('Lick rate per day')
+    threshold = (np.zeros(len(array)))+75
+    fig,plt.plot(x_values, threshold, linestyle='dotted', color='y')
+    
+    fig,plt.xlabel('Day Number')
+    fig,plt.ylabel('Percent licked (%)')
+    fig,plt.title('Lick rate per day')
     
     # Set y-axis limit and ticks
     y_max = 110  # Set maximum value to 100 with extra space above
     y_ticks = np.linspace(0, 100, num=11)  # Set ticks from 0 to 100 in intervals of 10
-    plt.ylim(0, y_max)  # Set y-axis limit
-    plt.yticks(y_ticks)
+    fig,plt.ylim(0, y_max)  # Set y-axis limit
+    fig,plt.yticks(y_ticks)
     
     # Set x-axis ticks
     x_ticks = np.linspace(1, len(x_values), num=len(x_values), dtype=int)  # Set ticks based on the number of data points
-    plt.xticks(x_ticks)
-    
+    fig,plt.xticks(x_ticks)
+
     plt.tight_layout()
-    plt.show()
-
-
-# In[ ]:
-
-
-
-
+    
+    if export_path:
+        plt.savefig(export_path)  # Save the plot if a save path is provided
+    else:
+        plt.show()
+        
+    return fig
