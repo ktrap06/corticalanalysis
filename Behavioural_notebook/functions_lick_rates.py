@@ -235,12 +235,15 @@ def licking(file_data, stage):
         if stage == "stage2":
             left_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 1))/count_1)*100
             right_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 2))/count_2)*100
-            variable_data.append([day_number, left_lick, right_lick])
+            total = (((left_lick*count_1)/100+(right_lick*count_2)/100)/(len(licked_values)))*100
+            variable_data.append([day_number, left_lick, right_lick, total])
             print(f"Stage 2 day {day_number} reached left lick rate of {left_lick}%, and right lick rate of {right_lick}%")
+            print(f"total successful trials {total}")
         elif stage == "stage1": 
             summed_value = sum(data[0])
-            variable_data.append([day_number, summed_value])
+            variable_data.append([day_number, summed_value,total])
             print(f"Stage 1 day {day_number} reached a lick rate of {summed_value}%")
+            print(f"total successful trials {total}")
         elif stage == "stage3":
             left_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 1))/count_1)*100
             right_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 2))/count_2)*100
@@ -251,10 +254,14 @@ def licking(file_data, stage):
             L_nolick= ((sum(licked_values[i]+1 for i in range(len(licked_values)) if success[i] == 0))/count_1)*100
             R_nolick = ((sum(licked_values[i]+1 for i in range(len(licked_values)) if success[i] == 0))/count_2)*100
 
-            print(f"Stage 3 day {day_number} success left: {left_lick}%, success right:{right_lick}%, fail: left stim right lick")
+            total = (((left_lick*count_1)/100+(right_lick*count_2)/100)/(len(licked_values)))*100
 
             
-            variable_data.append([day_number, left_lick, right_lick, L_Rlick, R_Llick, L_nolick, R_nolick])
+            print(f"Stage 3 day {day_number} success left: {left_lick}%, success right:{right_lick}%, fail: left stim right lick")
+            print(f"total successful trials {total}")
+
+
+            variable_data.append([day_number, left_lick, right_lick, L_Rlick, R_Llick, L_nolick, R_nolick, total])
     
     return variable_data
 
@@ -344,5 +351,44 @@ def plot_fail(array, export_path):
         plt.savefig(export_path)  # Save the plot if a save path is provided
     else:
         plt.show()
+        
+    return fig
+
+def plot_total(array, stage, export_path_total):
+    # Extract x and y values from the array
+    x_values = [row[0] for row in array]
+    if stage == "stage2":
+        y_values = [row[3] for row in array]
+    if stage == "stage3":
+        y_values = [row[7] for row in array]
+    fig = plt.figure(figsize=(4, 3))
+
+    fig,plt.plot(x_values, y_values, marker='o', linestyle='-', color='g')
+    fig,plt.legend(["Lick rate"])
+
+    threshold = (np.zeros(len(array)))+75
+    fig,plt.plot(x_values, threshold, linestyle='dotted', color='y')
+    
+    fig,plt.xlabel('Day Number')
+    fig,plt.ylabel('Percent licked (%)')
+    fig,plt.title('Lick rate per day total number')
+    
+    # Set y-axis limit and ticks
+    y_max = 110  # Set maximum value to 100 with extra space above
+    y_ticks = np.linspace(0, 100, num=11)  # Set ticks from 0 to 100 in intervals of 10
+    fig,plt.ylim(0, y_max)  # Set y-axis limit
+    fig,plt.yticks(y_ticks)
+    
+    # Set x-axis ticks
+    x_ticks = np.linspace(1, len(x_values), num=len(x_values), dtype=int)  # Set ticks based on the number of data points
+    fig,plt.xticks(x_ticks)
+
+    plt.tight_layout()
+    
+    if export_path_total:
+        plt.savefig(export_path_total)  # Save the plot if a save path is provided
+    else:
+        plt.show()
+        
         
     return fig
