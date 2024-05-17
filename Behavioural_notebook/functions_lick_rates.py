@@ -241,9 +241,9 @@ def licking(file_data, stage):
             print(f"total successful trials {total}")
         elif stage == "stage1": 
             summed_value = sum(data[0])
-            variable_data.append([day_number, summed_value,total])
+            variable_data.append([day_number, summed_value])
             print(f"Stage 1 day {day_number} reached a lick rate of {summed_value}%")
-            print(f"total successful trials {total}")
+            #print(f"total successful trials {total}")
         elif stage == "stage3":
             left_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 1))/count_1)*100
             right_lick = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 2))/count_2)*100

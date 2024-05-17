@@ -385,7 +385,7 @@ def extract_txt_flashes(txt_flashes, flash_type, fps = 30, flash_interval = 0.5)
 # In[18]:
 
 
-def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas.png', mask_outline = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas_outline.png'):
+def load_masks(mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas.png', mask_outline = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas_outline.png'):
     """
     applies a png image of a allen mouse brain atlas of the functional regions over the tiff stack
 
@@ -397,12 +397,12 @@ def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticala
     
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE) # Load PNG mask
     mask = cv2.resize(mask, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
-    _, binary_mask = cv2.threshold(mask, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+    #_, binary_mask = cv2.threshold(mask, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
 
 
     outline =  cv2.imread(mask_outline, cv2.IMREAD_GRAYSCALE) # Load PNG mask
     outline = cv2.resize(outline, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
-    _, binary_mask = cv2.threshold(outline, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+    #_, binary_mask = cv2.threshold(outline, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
 
     return mask, outline
 

@@ -27,6 +27,8 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 import plotly.express as px
 import imagecodecs
 from matplotlib.animation import FuncAnimation
+import seaborn as sns
+
 
 
 # In[6]:
@@ -383,7 +385,7 @@ def extract_txt_flashes(txt_flashes, flash_type, fps = 30, flash_interval = 0.5)
 # In[18]:
 
 
-def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas.png', mask_outline = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas_outline.png'):
+def load_masks(mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas.png', mask_outline = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/mouse_atlas_outline.png'):
     """
     applies a png image of a allen mouse brain atlas of the functional regions over the tiff stack
 
@@ -395,29 +397,29 @@ def load_masks(array3d, mask_path = 'C:/Users/trapped/Documents/GitHub/corticala
     
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE) # Load PNG mask
     mask = cv2.resize(mask, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
-    _, binary_mask = cv2.threshold(mask, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+    #_, binary_mask = cv2.threshold(mask, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
 
 
     outline =  cv2.imread(mask_outline, cv2.IMREAD_GRAYSCALE) # Load PNG mask
     outline = cv2.resize(outline, (128, 128)) # Resize mask to match TIFF stack dimensions if needed. Assuming your TIFF stack has dimensions (num_frames, 128, 128)
-    _, binary_mask = cv2.threshold(outline, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
+    #_, binary_mask = cv2.threshold(outline, 128, 255, cv2.THRESH_BINARY) # Normalize mask to binary (0 or 255)
 
     return mask, outline
 
 #roi processing
 
-def avg_trials(flash_indices, smoothed_signal, double = 'FALSE', segment_size = 330):
+def avg_trials(flash_indices, smoothed_signal, double = 'FALSE', segment_size = 330, minus = 0):
     segments = []
     
     if double == 'TRUE':
         for flash_index in flash_indices:
-            d_start_index = flash_index[0]
+            d_start_index = flash_index[0]-minus
             d_end_index = d_start_index + segment_size
             segments.append(smoothed_signal[d_start_index:d_end_index])
         
     else: 
         for flash_index in flash_indices:
-            start_index = flash_index
+            start_index = flash_index-minus
             end_index = flash_index + segment_size
             segments.append(smoothed_signal[start_index:end_index])
             
@@ -463,3 +465,80 @@ def animate_figure(avg_flash, fps=10, save_path="C:/Users/trapped/Documents/GitH
     myanimation.save(save_path, writer='pillow')
 
     print(f"GIF stack saved at: {save_path}")
+
+def extract_v1_trials(avg_flash, roi_time = 5, roi_start_x=15, roi_start_y = 85, roi_width=45, roi_height = 45):
+    
+    #Determine the coordinates of the first region (ROI)
+    first_region = avg_flash[:, roi_time, roi_start_y:roi_start_y+roi_height, roi_start_x:roi_start_x+roi_width]
+    
+    #Find the coordinates of the maximum value within the extracted region
+    max_coords = np.unravel_index(np.argmax(first_region), first_region.shape)
+    max_x, max_y = max_coords[1] + roi_start_x, max_coords[0] + roi_start_y
+
+    new_roi_width, new_roi_height = 10, 10  # Adjust the dimensions of the new region
+    new_roi_start_x = max_x - new_roi_width // 2
+    new_roi_start_y = max_y - new_roi_height // 2
+    
+    # Ensure the new region is within the bounds of the video_data
+    new_roi_start_x = max(0, new_roi_start_x)
+    new_roi_start_y = max(0, new_roi_start_y)
+    new_roi_end_x = min(avg_flash.shape[2], new_roi_start_x + new_roi_width)
+    new_roi_end_y = min(avg_flash.shape[1], new_roi_start_y + new_roi_height)
+
+    # Extract the data within the new region for the specific time frame
+    new_region = avg_flash[:, :, new_roi_start_y:new_roi_end_y, new_roi_start_x:new_roi_end_x]
+
+    return new_region
+
+def trials(flash_indices, smoothed_signal, double = 'FALSE', segment_size = 330, minus=0):
+    segments = []
+    
+    if double == 'TRUE':
+        for flash_index in flash_indices:
+            d_start_index = flash_index[0]- minus
+            d_end_index = d_start_index + segment_size
+            segments.append(smoothed_signal[d_start_index:d_end_index])
+        
+    else: 
+        for flash_index in flash_indices:
+            start_index = flash_index- minus
+            end_index = flash_index + segment_size
+            segments.append(smoothed_signal[start_index:end_index])
+            
+    segments_array = np.array(segments)
+    return segments_array
+
+def heatmap(array, x="frames (30fps)", y="trials", title_name = "single flash full frame trials"):
+
+    sns.set_theme()
+
+    f, ax = plt.subplots(figsize=(9, 6))
+    sns.heatmap((array.mean(axis=(2,3))), cmap = "jet")
+    #ax.set_yticklabels(len(full_single_trials.mean(axis=(2,3)) + 1))
+    ax.set(xlabel=x, ylabel=y, title = title_name)
+    #export_path = "X:/Raymond Lab/1_Kai/3_processed_data/4_heatmaps/single_stage3.png"
+    #plt.savefig(export_path)
+
+def extract_v1_trials_wo_spouts(avg_flash, roi_time = 5, roi_start_x=15, roi_start_y = 85, roi_width=45, roi_height = 45):
+    
+    #Determine the coordinates of the first region (ROI)
+    first_region = avg_flash[:, roi_time, roi_start_y:roi_start_y+roi_height, roi_start_x:roi_start_x+roi_width]
+    
+    #Find the coordinates of the maximum value within the extracted region
+    max_coords = np.unravel_index(np.argmax(first_region), first_region.shape)
+    max_x, max_y = max_coords[1] + roi_start_x, max_coords[0] + roi_start_y
+
+    new_roi_width, new_roi_height = 10, 10  # Adjust the dimensions of the new region
+    new_roi_start_x = max_x - new_roi_width // 2
+    new_roi_start_y = max_y - new_roi_height // 2
+    
+    # Ensure the new region is within the bounds of the video_data
+    new_roi_start_x = max(0, new_roi_start_x)
+    new_roi_start_y = max(0, new_roi_start_y)
+    new_roi_end_x = min(avg_flash.shape[3], new_roi_start_x + new_roi_width)
+    new_roi_end_y = min(avg_flash.shape[2], new_roi_start_y + new_roi_height)
+
+    # Extract the data within the new region for the specific time frame
+    new_region = avg_flash[:, :, new_roi_start_y:new_roi_end_y, new_roi_start_x:new_roi_end_x]
+
+    return new_region
