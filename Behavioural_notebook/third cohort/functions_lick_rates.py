@@ -100,7 +100,7 @@ def licking(file_data, stage):
             left_nogo = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 3))/count_3)*100
             right_nogo = ((sum(licked_values[i] for i in range(len(licked_values)) if flash_type_values[i] == 4))/count_4)*100
             total = (((left_lick*count_1)/100+(right_lick*count_2)/100)/(count_1+count_2))*100
-            total_nogo = (((left_nogo*count_2)/100+(right_nogo*count_4)/100)/(count_3+count_4))*100
+            total_nogo = (((left_nogo*count_3)/100+(right_nogo*count_4)/100)/(count_3+count_4))*100
             variable_data.append([day_number, left_lick, right_lick, total, left_nogo, right_nogo,total_nogo])
             print(f"Stage 2 day {day_number} reached left lick rate of {left_lick}% successful, and right lick rate of {right_lick}% successful")
             print(f"Stage 2 day {day_number} reached left nogo rate of {left_nogo}% successful, and right nogo rate of {right_nogo}% successful")
@@ -316,8 +316,7 @@ def plot_total_nogo(array, stage, export_path_nogo):
     fig,plt.plot(x_values, y_values_lick, marker='o', linestyle='-', color= 'r', label='success lick')
     fig,plt.plot(x_values, y_values_nogo, marker='o', linestyle='-', color = 'c', label='success nogo')
     fig,plt.legend(["success lick", "success nogo"])
-    fig,plt.legend(["success rate"])
-
+    
     threshold = (np.zeros(len(array)))+75
     fig,plt.plot(x_values, threshold, linestyle='dotted', color='y')
     
