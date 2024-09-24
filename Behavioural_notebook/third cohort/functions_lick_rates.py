@@ -5,6 +5,7 @@
 
 # In[61]:
 
+#FEMALE THIRD COHORT
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -403,4 +404,56 @@ def plot_total_pretty(array, stage, export_path_total=None):
         
     return fig
 
+#averaged script
+def plot_averaged(df, condition, nogo, export_path_nogo=None, dpi=300):
+    # Extract x and y values from the dataframe
+    x_values = df['day_number']
+    y_values_lick = df['total']  # Assuming 'total' corresponds to the lick success rate
+    if nogo == "TRUE":
+        y_values_nogo = df['total_nogo']  # Assuming 'total_nogo' corresponds to the nogo success rate
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(4, 3), dpi=dpi)  # Increased dpi for better quality
     
+    ax.plot(x_values, y_values_lick, marker='o', linestyle='-', color='#589370', label='success lick')
+    if nogo == "TRUE":
+        ax.plot(x_values, y_values_nogo, marker='o', linestyle='-', color='c', label='success nogo')
+        ax.legend(["success lick", "success nogo"])
+    else:
+        ax.legend(["success lick"])
+    
+    # Add a threshold line at y = 75
+    threshold = np.zeros(len(df)) + 75
+    ax.plot(x_values, threshold, linestyle='dotted', color='y', label='threshold (75%)')
+    
+    # Labels and title
+    ax.set_xlabel('Day Number')
+    ax.set_ylabel('Percent success (%)')
+    if condition == "HD":
+        ax.set_title('female HD success rate per day (avg)')
+    else:
+        ax.set_title('female WT success rate per day (avg)')
+
+    # Set y-axis limits and ticks
+    y_max = 110  # Set maximum value with extra space above
+    y_ticks = np.linspace(0, 100, num=11)  # Set ticks from 0 to 100 in intervals of 10
+    ax.set_ylim(0, y_max)
+    ax.set_yticks(y_ticks)
+    ax.spines['top'].set_visible(False)  # Hide the top spine.
+    ax.spines['right'].set_visible(False)  # Hide the right spine.
+    
+    # Set x-axis ticks based on the day number
+    x_ticks = np.arange(min(x_values), max(x_values) + 1, 1)  # Adjust x-axis ticks to show every day
+    ax.set_xticks(x_ticks)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save or show the plot
+    if export_path_nogo:
+        plt.savefig(export_path_nogo, dpi=dpi, format='png', bbox_inches='tight')  # Save with high dpi and tight layout
+    else:
+        plt.show()
+    
+    return fig
+  
