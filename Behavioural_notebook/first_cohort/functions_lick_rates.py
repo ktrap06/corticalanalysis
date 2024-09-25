@@ -235,8 +235,8 @@ def plot_total(array, stage, export_path_total):
     fig,plt.plot(x_values, threshold, linestyle='dotted', color='y')
     
     fig,plt.xlabel('Day Number')
-    fig,plt.ylabel('Percent licked (%)')
-    fig,plt.title('Lick rate per day total number')
+    fig,plt.ylabel('percent correct spout choice')
+    fig,plt.title('correct spout choice over days')
     
     # Set y-axis limit and ticks
     y_max = 110  # Set maximum value to 100 with extra space above
@@ -332,8 +332,8 @@ def plot_averaged(df, condition, nogo, export_path_nogo=None, dpi=300):
     if nogo == "TRUE":
         ax.plot(x_values, y_values_nogo, marker='o', linestyle='-', color='c', label='success nogo')
         ax.legend(["success lick", "success nogo"])
-    else:
-        ax.legend(["success lick"])
+    #else:
+        #ax.legend(["success lick"])
     
     # Add a threshold line at y = 75
     threshold = np.zeros(len(df)) + 75
