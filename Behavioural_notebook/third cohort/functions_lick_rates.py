@@ -405,7 +405,7 @@ def plot_total_pretty(array, stage, export_path_total=None):
     return fig
 
 #averaged script
-def plot_averaged(df, condition, nogo, export_path_nogo=None, dpi=300):
+def plot_averaged(df, condition, stage, nogo, export_path_nogo=None, dpi=300):
     # Extract x and y values from the dataframe
     x_values = df['day_number']
     y_values_lick = df['total']  # Assuming 'total' corresponds to the lick success rate
@@ -414,6 +414,8 @@ def plot_averaged(df, condition, nogo, export_path_nogo=None, dpi=300):
 
     # Create the plot
     fig, ax = plt.subplots(figsize=(4, 3), dpi=dpi)  # Increased dpi for better quality
+    fig.patch.set_facecolor('#F3F6F1')
+    ax.set_facecolor('#F3F6F1')
     
     ax.plot(x_values, y_values_lick, marker='o', linestyle='-', color='#589370', label='success lick')
     if nogo == "TRUE":
@@ -423,16 +425,22 @@ def plot_averaged(df, condition, nogo, export_path_nogo=None, dpi=300):
         ax.legend(["success lick"])
     
     # Add a threshold line at y = 75
-    threshold = np.zeros(len(df)) + 75
-    ax.plot(x_values, threshold, linestyle='dotted', color='y', label='threshold (75%)')
+    #threshold = np.zeros(len(df)) + 75
+    #ax.plot(x_values, threshold, linestyle='dotted', color='y', label='threshold (75%)')
     
     # Labels and title
     ax.set_xlabel('Day Number')
     ax.set_ylabel('Percent success (%)')
     if condition == "HD":
-        ax.set_title('female HD success rate per day (avg)')
+        if stage == "stage1":
+            ax.set_title('HD stage 1 (avg)')
+        else:
+            ax.set_title('HD stage 2 (avg)')
     else:
-        ax.set_title('female WT success rate per day (avg)')
+        if stage == "stage1":
+            ax.set_title('WT stage 1 (avg)')
+        else:
+            ax.set_title('WT stage 2 (avg)')
 
     # Set y-axis limits and ticks
     y_max = 110  # Set maximum value with extra space above

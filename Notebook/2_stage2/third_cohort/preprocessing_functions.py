@@ -174,6 +174,11 @@ def extract_artifacts(timecourse, frames_between_double_flash = 33):
         else:
             single_flash.append(artifact_indices[i])
 
+        # Check if double_flash has an odd number of elements
+    if len(double_flash) % 2 != 0:
+        # Handle the odd element: either remove or move it to single_flash
+        single_flash.append(double_flash.pop())
+
     print("Number of double_flash:", len(double_flash))
 
     artifact_indices = np.array(artifact_indices)
@@ -354,15 +359,19 @@ def load_txt(file_path, fps=30, footer = 4):
 
     time_column = data_txt[:, 1]
     flash_type = data_txt[:, 2]
+    success = data_txt[:,4]
     frames_flash_index = (time_column - start)*fps
+    
 
-    return frames_flash_index, data_txt, flash_type
+    print("successfully loaded txt file")
+
+    return frames_flash_index, data_txt, flash_type, success
 
 
 # In[17]:
 
 
-def extract_txt_flashes(txt_flashes, flash_type, fps = 30, flash_interval = 0.5):
+def extract_txt_flashes(txt_flashes, flash_type, fps = 30, flash_interval = 1):
     allflashes = []
     double = []
     single = []
@@ -408,7 +417,7 @@ def load_masks(mask_path = 'C:/Users/trapped/Documents/GitHub/corticalanalysis/m
 
 #roi processing
 
-def avg_trials(flash_indices, smoothed_signal, double=False, segment_size=330, minus=0):
+def avg_trials(flash_indices, smoothed_signal, double=False, segment_size=200, minus=20):
     segments = []
     
     if double:
@@ -419,16 +428,16 @@ def avg_trials(flash_indices, smoothed_signal, double=False, segment_size=330, m
             if len(segment) == segment_size:
                 segments.append(segment)
             else:
-                print(f"Segment double length mismatch: expected {segment_size}, got {len(segment)}")
+                print(f"Segment double length mismatch: expected {segment_size}, got {len(segment)} at index {flash_index}")
     else:
         for flash_index in flash_indices:
             start_index = flash_index - minus
-            end_index = start_index + segment_size - minus
-            segment = smoothed_signal[start_index:end_index]
+            end_index = start_index + segment_size
+            segment = smoothed_signal[int(start_index):int(end_index)]
             if len(segment) == segment_size:
                 segments.append(segment)
             else:
-                print(f"Segment single length mismatch: expected {segment_size}, got {len(segment)}")
+                print(f"Segment single length mismatch: expected {segment_size}, got {len(segment)} at index {flash_index}")
                 
     if segments:
         segments_array = np.array(segments)
@@ -554,148 +563,56 @@ def extract_v1_trials_wo_spouts(avg_flash, roi_time = 5, roi_start_x=15, roi_sta
 
     return new_region
 
-# brain registration
-def calculate_and_adjust_coordinates(cortex_data, max_projection):
-    all_x = []
-    all_y = []
-    # Gather all coordinates from the dataset to find extents
-    for index, row in cortex_data.iterrows():
-        all_x.extend(eval(row['left_x']) + eval(row['right_x']))
-        all_y.extend(eval(row['left_y']) + eval(row['right_y']))
-    
-    # Calculate min and max
-    min_x, max_x = min(all_x), max(all_x)
-    min_y, max_y = min(all_y), max(all_y)
-    width = max_x - min_x
-    height = max_y - min_y
+#txt files and lining up to successes
 
-    # Determine scaling factor to fit the overlay in the image dimensions
-    scale_factor = min(max_projection.shape[0] / height, max_projection.shape[1] / width)
 
-    # Calculate translation to center the overlay
-    center_x = (max_projection.shape[1] - (width * scale_factor)) / 2
-    center_y = (max_projection.shape[0] - (height * scale_factor)) / 2
-    
-    return scale_factor, center_x - min_x * scale_factor, center_y - min_y * scale_factor
+def extract_success(txt_file):
+    flash_type_txt, success_txt = txt_file[2], txt_file[3]
 
-# Adjust draw_static_boundaries function to include scaling and translation
-def draw_adjusted_static_boundaries(scale, tx, ty, max_projection, cortex_data):
-    overlay = np.zeros_like(max_projection, dtype=np.uint8)
-    cortex_data['adjusted_left_x'] = None
-    cortex_data['adjusted_left_y'] = None
-    cortex_data['adjusted_right_x'] = None
-    cortex_data['adjusted_right_y'] = None
-    for index, row in cortex_data.iterrows():
-        left_x = [x * scale + tx for x in eval(row['left_x'])]
-        left_y = [y * scale + ty for y in eval(row['left_y'])]
-        right_x = [x * scale + tx for x in eval(row['right_x'])]
-        right_y = [y * scale + ty for y in eval(row['right_y'])]
-        # Update the DataFrame with the adjusted coordinates
-        cortex_data.at[index, 'adjusted_left_x'] = left_x
-        cortex_data.at[index, 'adjusted_left_y'] = left_y
-        cortex_data.at[index, 'adjusted_right_x'] = right_x
-        cortex_data.at[index, 'adjusted_right_y'] = right_y
-        
-        left_coords = np.array(list(zip(left_x, left_y)), dtype=np.int32)
-        right_coords = np.array(list(zip(right_x, right_y)), dtype=np.int32)
-        
-        cv2.polylines(overlay, [left_coords], isClosed=False, color=(255, 255, 0), thickness=1)
-        cv2.polylines(overlay, [right_coords], isClosed=False, color=(255, 255, 0), thickness=1)
-    
-    return overlay
+    single_txt = []
+    double_txt = []
+    nogo_txt = []
 
-# Update the composite image function to use the adjusted overlay
-def transform_image_only_adjusted(x_offset, y_offset, scale,max_projection):
-    scale_factor_img = max(scale / 100, 0.01)
-    transformed_img = cv2.resize(max_projection.astype(np.float32), None, fx=scale_factor_img, fy=scale_factor_img, interpolation=cv2.INTER_LINEAR)
-    transformed_img = cv2.normalize(transformed_img, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    for i in range(len(flash_type_txt)):
+        if flash_type_txt[i] == 1:
+            single_txt.append(success_txt[i])  # Flash type 1 with success rate
+        elif flash_type_txt[i] == 2:
+            double_txt.append(success_txt[i])  # Flash type 2 with success rate
+        elif flash_type_txt[i] == 3:
+            nogo_txt.append(success_txt[i])  # nogo success rate (left spout moves in with no stim)
+        elif flash_type_txt[i] == 4:
+            nogo_txt.append(success_txt[i])  # nogo success rate (right with no stim)
     
-    composite_image = np.zeros_like(max_projection, dtype=np.uint8)
-    start_x = int(composite_image.shape[1]/2 - transformed_img.shape[1]/2 + x_offset)
-    start_y = int(composite_image.shape[0]/2 - transformed_img.shape[0]/2 + y_offset)
-    end_x = start_x + transformed_img.shape[1]
-    end_y = start_y + transformed_img.shape[0]
-    if start_x < 0 or start_y < 0 or end_x > composite_image.shape[1] or end_y > composite_image.shape[0]:
-        sx = max(start_x, 0)
-        sy = max(start_y, 0)
-        ex = min(end_x, composite_image.shape[1])
-        ey = min(end_y, composite_image.shape[0])
-        composite_image[sy:ey, sx:ex] = transformed_img[sy-start_y:ey-start_y, sx-start_x:ex-start_x]
-    else:
-        composite_image[start_y:end_y, start_x:end_x] = transformed_img
-    
-    mask = boundary_overlay_adjusted > 0
-    composite_image[mask] = boundary_overlay_adjusted[mask]
-    
-    return composite_image
+    return single_txt, double_txt, nogo_txt
 
-# Update the display function to use the new composite function
-def update_image_only_adjusted(val, max_projection):
-    global x_offset, y_offset, scale
-    x_offset = cv2.getTrackbarPos('X Offset', 'Registration') - 170
-    y_offset = cv2.getTrackbarPos('Y Offset', 'Registration') - 170
-    scale = cv2.getTrackbarPos('Scale', 'Registration')
-    transformed = transform_image_only_adjusted(x_offset, y_offset, scale, max_projection)
-    cv2.imshow('Registration', transformed)
-
-def adjust_tif_stack(stack, scale, x_offset, y_offset):
-    # Calculate scaling factor
-    scale_factor = max(scale / 100, 0.01)
-    adjusted_stack = []
-    for frame in stack:
-        # Scale each frame
-        transformed_frame = cv2.resize(frame.astype(np.uint16), None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_LINEAR)
-        # Create new blank frame to hold transformed frame
-        new_frame = np.zeros_like(frame, dtype=np.uint16)
-        start_x = int(new_frame.shape[1]/2 - transformed_frame.shape[1]/2 + x_offset)
-        start_y = int(new_frame.shape[0]/2 - transformed_frame.shape[0]/2 + y_offset)
-        end_x = start_x + transformed_frame.shape[1]
-        end_y = start_y + transformed_frame.shape[0]
-        if start_x < 0 or start_y < 0 or end_x > new_frame.shape[1] or end_y > new_frame.shape[0]:
-            sx = max(start_x, 0)
-            sy = max(start_y, 0)
-            ex = min(end_x, new_frame.shape[1])
-            ey = min(end_y, new_frame.shape[0])
-            new_frame[sy:ey, sx:ex] = transformed_frame[sy-start_y:ey-start_y, sx-start_x:ex-start_x]
+def sort_success(single_or_double_success_txt, full_segments):
+    success = []
+    fail = []
+    
+    for i in range(len(single_or_double_success_txt)):
+        if single_or_double_success_txt[i] == 1:
+            success.append(full_segments[i])
+        elif single_or_double_success_txt[i] == 0:
+            fail.append(full_segments[i])
         else:
-            new_frame[start_y:end_y, start_x:end_x] = transformed_frame
-        adjusted_stack.append(new_frame)
-    return np.array(adjusted_stack).astype(np.uint16)
-    
-def display_image_with_overlay(image, cortex_data, region_name, side = 'both'):
-    # Filter the row corresponding to the region of interest
-    region_row = cortex_data[cortex_data['acronym'] == region_name]
-    
-    if region_row.empty:
-        print(f"No region found with the name {region_name}")
-        return
-    
-    # Extract the coordinates from the filtered row
-    left_x = region_row.iloc[0]['adjusted_left_x']
-    left_y = region_row.iloc[0]['adjusted_left_y']
-    right_x = region_row.iloc[0]['adjusted_right_x']
-    right_y = region_row.iloc[0]['adjusted_right_y']
-    
-    # Convert coordinates to the correct format for plotting
-    
-    left_coords = np.array(list(zip(left_x, left_y)))
-    right_coords = np.array(list(zip(right_x, right_y)))
-    
-    # Display the image
-    plt.imshow(image, cmap='gray')
-    
-    # Plot the polylines on the image
-    if side == 'both':
-        plt.plot(left_coords[:, 0], left_coords[:, 1], color='yellow', linewidth=1)
-        plt.plot(right_coords[:, 0], right_coords[:, 1], color='yellow', linewidth=1)
+            print("txt success rate contains number that is not 1 or 0")
+        
+    print("success =", len(success))
+    print("fail =", len(fail))
+    print("total trials =", len(single_or_double_success_txt))
 
-    if side == 'left':
-        plt.plot(left_coords[:, 0], left_coords[:, 1], color='yellow', linewidth=1)
+    return success, fail
 
-    if side == 'right':
-        plt.plot(right_coords[:, 0], right_coords[:, 1], color='yellow', linewidth=1)
+def extract_nogo(txt_file):
+    flash_type_txt, time_index = txt_file[2], txt_file[0]
+
+    nogo = []
+    for i in range(len(flash_type_txt)):
+        if flash_type_txt[i] == 3:
+            nogo.append(time_index[i])
+        elif flash_type_txt[i] == 4:
+            nogo.append(time_index[i])
+    nogo = np.array(nogo).round()
     
-    # Show the image with overlay
-    plt.title("Image with Overlay")
-    plt.axis('off')
-    plt.show()
+    print("# nogo trials:", len(nogo))
+    return nogo
